@@ -4,18 +4,24 @@ import seaborn as sns
 import streamlit as st
 from statsmodels.tsa.arima.model import ARIMA
 
-# Load data
-@st.cache_data
+@st.cache_data(ttl=600)
 def load_data():
-    df = pd.read_csv("cleaned_data.csv", parse_dates=[["year", "month", "day", "hour"]])
-    df.rename(columns={"year_month_day_hour": "datetime"}, inplace=True)
+    url = "https://raw.githubusercontent.com/NibroosAbrar/airqualitydashboard/main/dashboard/cleaned_data.csv"
     
-    # Konversi datetime ke tipe yang benar
-    df["datetime"] = pd.to_datetime(df["datetime"], format="%Y %m %d %H")
-    df["date"] = df["datetime"].dt.date  # Kolom date-only untuk filtering
-    return df
+    try:
+        df = pd.read_csv(url)  # Ambil langsung dari GitHub
+        st.write("Kolom dalam dataset:", df.columns.tolist())  # Debugging
+        return df
+    except Exception as e:
+        st.error(f"Gagal memuat data: {e}")
+        return None
 
 df = load_data()
+
+if df is None:
+    st.stop()  # Hentikan eksekusi jika gagal
+
+st.write("Data berhasil dimuat:", df.head())
 
 # Sidebar filter
 st.sidebar.header("Filter Data")
