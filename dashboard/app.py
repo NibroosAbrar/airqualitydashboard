@@ -4,23 +4,28 @@ import seaborn as sns
 import streamlit as st
 from statsmodels.tsa.arima.model import ARIMA
 
-# Load data dengan caching
 @st.cache_data(ttl=600)
 def load_data():
     url = "https://raw.githubusercontent.com/NibroosAbrar/airqualitydashboard/main/dashboard/cleaned_data.csv"
-    
-    # Baca CSV tanpa parse_dates
     df = pd.read_csv(url)
     
-    # Gabungkan kolom menjadi datetime
-    df["datetime"] = pd.to_datetime(df[['year', 'month', 'day', 'hour']].astype(str).agg('-'.join, axis=1), format='%Y-%m-%d-%H')
+    # Cek apakah kolom 'year', 'month', 'day', 'hour' ada
+    expected_columns = {'year', 'month', 'day', 'hour'}
+    if expected_columns.issubset(df.columns):
+        df["datetime"] = pd.to_datetime(df[['year', 'month', 'day', 'hour']].astype(str).agg('-'.join, axis=1), format='%Y-%m-%d-%H')
+    elif "datetime" in df.columns:  # Jika kolom 'datetime' sudah ada
+        df["datetime"] = pd.to_datetime(df["datetime"])
+    else:
+        raise ValueError("Kolom datetime tidak ditemukan dalam dataset.")
 
-    # Buat kolom date-only untuk filtering
-    df["date"] = df["datetime"].dt.date
-
+    df["date"] = df["datetime"].dt.date  # Tambahkan kolom date untuk filtering
     return df
 
-df = load_data()
+try:
+    df = load_data()
+    st.write("Data berhasil dimuat:", df.head())
+except Exception as e:
+    st.error(f"Terjadi kesalahan saat memuat data: {e}")
 
 # Sidebar filter
 st.sidebar.header("Filter Data")
