@@ -14,7 +14,12 @@ def load_data():
         response = requests.get(url)
         if response.status_code == 200:
             csv_data = StringIO(response.text)
-            df = pd.read_csv(csv_data)
+            df = pd.read_csv(csv_data, parse_dates=[["year", "month", "day", "hour"]])
+            df.rename(columns={"year_month_day_hour": "datetime"}, inplace=True)
+    
+            # Konversi datetime ke tipe yang benar
+            df["datetime"] = pd.to_datetime(df["datetime"], format="%Y %m %d %H")
+            df["date"] = df["datetime"].dt.date  # Kolom date-only untuk filtering
             st.write("Kolom dalam dataset:", df.columns.tolist())  # Debugging
             return df
         else:
