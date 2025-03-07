@@ -2,35 +2,79 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
+from statsmodels.tsa.arima.model import ARIMA
 
-sns.set(style='dark')
+# Load data
+@st.cache_data
+def load_data():
+    df = pd.read_csv("cleaned_data.csv", parse_dates=[["year", "month", "day", "hour"]])
+    df.rename(columns={"year_month_day_hour": "datetime"}, inplace=True)
+    
+    # Konversi datetime ke tipe yang benar
+    df["datetime"] = pd.to_datetime(df["datetime"], format="%Y %m %d %H")
+    df["date"] = df["datetime"].dt.date  # Kolom date-only untuk filtering
+    return df
 
-# Load cleaned data
-merged_df = pd.read_csv("cleaned_data.csv")
+df = load_data()
 
-# Convert to datetime format
-merged_df["datetime"] = pd.to_datetime(merged_df[["year", "month", "day", "hour"]])
+# Sidebar filter
+st.sidebar.header("Filter Data")
 
-# Trend analysis: Average PM2.5 over time for each station
-st.title("Analisis Kualitas Udara")
-st.subheader("Tren Kualitas Udara dari Waktu ke Waktu")
+stations = df["station"].unique()
+selected_stations = st.sidebar.multiselect("Pilih Stasiun", stations, default=stations)
+date_range = st.sidebar.date_input("Rentang Waktu", [df["date"].min(), df["date"].max()])
 
-daily_trend = merged_df.groupby(["datetime", "station"])["PM2.5"].mean().reset_index()
+# Filter data
+filtered_df = df[(df["station"].isin(selected_stations)) &
+                 (df["date"] >= date_range[0]) &
+                 (df["date"] <= date_range[1])]
+
+# 1️⃣ Tren Kualitas Udara
+st.subheader("📊 Tren Kualitas Udara per Stasiun")
 fig, ax = plt.subplots(figsize=(15, 6))
-sns.lineplot(data=daily_trend, x="datetime", y="PM2.5", hue="station", ax=ax)
+sns.lineplot(data=filtered_df, x="datetime", y="PM2.5", hue="station", ax=ax)
 plt.xticks(rotation=45)
+plt.xlabel("Tanggal")
+plt.ylabel("Konsentrasi PM2.5 (µg/m³)")
+plt.title("Tren PM2.5 dari Waktu ke Waktu")
 st.pyplot(fig)
 
-# Correlation analysis to find main influencing factors
-st.subheader("Faktor yang Mempengaruhi Kualitas Udara")
-corr_matrix = merged_df[["PM2.5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN", "WSPM"]].corr()
-fig, ax = plt.subplots(figsize=(12, 8))
-sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
+# 2️⃣ Faktor yang Mempengaruhi Kualitas Udara
+st.subheader("🔍 Faktor yang Mempengaruhi Kualitas Udara")
+corr_matrix = df[["PM2.5","PM10","SO2","NO2","O3","CO","TEMP","PRES","DEWP","RAIN"]].corr()
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", ax=ax)
+plt.title("Korelasi Antar Parameter Kualitas Udara")
 st.pyplot(fig)
 
-# Air quality comparison across stations
-st.subheader("Perbandingan Kualitas Udara Antar Stasiun")
-fig, ax = plt.subplots(figsize=(15, 6))
-sns.boxplot(data=merged_df, x="station", y="PM2.5")
+# 3️⃣ Perbandingan Kualitas Udara Antarstasiun
+st.subheader("📌 Perbandingan Kualitas Udara Antarstasiun")
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.boxplot(data=filtered_df, x="station", y="PM2.5")
 plt.xticks(rotation=45)
+plt.xlabel("Stasiun")
+plt.ylabel("Konsentrasi PM2.5 (µg/m³)")
+plt.title("Distribusi PM2.5 di Berbagai Stasiun")
 st.pyplot(fig)
+
+# 4️⃣ Forecasting dengan ARIMA
+st.subheader("📈 Forecasting PM2.5 dengan ARIMA")
+selected_station = st.selectbox("Pilih Stasiun untuk Forecasting", stations)
+station_df = df[df["station"] == selected_station].set_index("datetime")["PM2.5"].resample("D").mean().fillna(method="ffill")
+
+if station_df.dropna().shape[0] > 30:  # Pastikan ada cukup data untuk ARIMA
+    model = ARIMA(station_df.dropna(), order=(5, 1, 2))
+    model_fit = model.fit()
+    forecast = model_fit.forecast(steps=30)
+
+    # Plot forecasting
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(station_df, label="Actual Data")
+    ax.plot(forecast, label="Forecast (30 Hari ke Depan)", linestyle="dashed", color="red")
+    ax.set_xlabel("Tanggal")
+    ax.set_ylabel("PM2.5 (µg/m³)")
+    ax.set_title(f"Forecasting PM2.5 untuk Stasiun {selected_station}")
+    ax.legend()
+    st.pyplot(fig)
+else:
+    st.warning("Data tidak cukup untuk melakukan forecasting dengan ARIMA.")
