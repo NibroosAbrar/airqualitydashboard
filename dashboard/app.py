@@ -54,7 +54,7 @@ st.pyplot(fig)
 
 # 2️⃣ Faktor yang Mempengaruhi Kualitas Udara
 st.subheader("🔍 Faktor yang Mempengaruhi Kualitas Udara")
-corr_matrix = df[["PM2.5","PM10","SO2","NO2","O3","CO","TEMP","PRES","DEWP","RAIN"]].corr()
+corr_matrix = df[["PM2.5","PM10","SO2","NO2","O3","CO","TEMP","PRES","DEWP","RAIN", "WSPM"]].corr()
 fig, ax = plt.subplots(figsize=(10, 6))
 sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", ax=ax)
 plt.title("Korelasi Antar Parameter Kualitas Udara")
