@@ -29,16 +29,6 @@ def load_data():
         st.error(f"Terjadi kesalahan: {e}")
         return None
 
-df = load_data()
-
-if df is None:
-    st.stop()  # Hentikan aplikasi jika gagal memuat data
-
-st.write("Data berhasil dimuat:", df.head())
-
-
-st.write("Data berhasil dimuat:", df.head())
-
 # Sidebar filter
 st.sidebar.header("Filter Data")
 
