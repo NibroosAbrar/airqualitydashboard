@@ -20,7 +20,6 @@ def load_data():
             # Konversi datetime ke tipe yang benar
             df["datetime"] = pd.to_datetime(df["datetime"], format="%Y %m %d %H")
             df["date"] = df["datetime"].dt.date  # Kolom date-only untuk filtering
-            st.write("Kolom dalam dataset:", df.columns.tolist())  # Debugging
             return df
         else:
             st.error(f"Gagal mengunduh data, kode status: {response.status_code}")
@@ -28,6 +27,8 @@ def load_data():
     except Exception as e:
         st.error(f"Terjadi kesalahan: {e}")
         return None
+
+df = load_data()
 
 # Sidebar filter
 st.sidebar.header("Filter Data")
