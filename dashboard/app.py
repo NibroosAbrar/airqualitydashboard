@@ -7,7 +7,7 @@ from statsmodels.tsa.arima.model import ARIMA
 # Load data
 @st.cache_data
 def load_data():
-    df = pd.read_csv("cleaned_data.csv", parse_dates=[["year", "month", "day", "hour"]])
+    df = pd.read_csv("https://raw.githubusercontent.com/NibroosAbrar/airqualitydashboard/main/dashboard/cleaned_data.csv", parse_dates=[["year", "month", "day", "hour"]])
     df.rename(columns={"year_month_day_hour": "datetime"}, inplace=True)
     
     # Konversi datetime ke tipe yang benar
