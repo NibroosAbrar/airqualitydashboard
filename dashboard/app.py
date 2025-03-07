@@ -3,23 +3,34 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
 from statsmodels.tsa.arima.model import ARIMA
+import requests
+from io import StringIO
 
 @st.cache_data(ttl=600)
 def load_data():
-    url = "https://raw.githubusercontent.com/NibroosAbrar/airqualitydashboard/main/dashboard/cleaned_data.csv"
+    url = "https://github.com/NibroosAbrar/airqualitydashboard/raw/main/dashboard/cleaned_data.csv"
     
     try:
-        df = pd.read_csv(url)  # Ambil langsung dari GitHub
-        st.write("Kolom dalam dataset:", df.columns.tolist())  # Debugging
-        return df
+        response = requests.get(url)
+        if response.status_code == 200:
+            csv_data = StringIO(response.text)
+            df = pd.read_csv(csv_data)
+            st.write("Kolom dalam dataset:", df.columns.tolist())  # Debugging
+            return df
+        else:
+            st.error(f"Gagal mengunduh data, kode status: {response.status_code}")
+            return None
     except Exception as e:
-        st.error(f"Gagal memuat data: {e}")
+        st.error(f"Terjadi kesalahan: {e}")
         return None
 
 df = load_data()
 
 if df is None:
-    st.stop()  # Hentikan eksekusi jika gagal
+    st.stop()  # Hentikan aplikasi jika gagal memuat data
+
+st.write("Data berhasil dimuat:", df.head())
+
 
 st.write("Data berhasil dimuat:", df.head())
 
